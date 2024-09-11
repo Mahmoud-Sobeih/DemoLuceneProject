@@ -15,8 +15,8 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -28,7 +28,9 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -87,7 +89,6 @@ public class LuceneIndexDataService {
                 document.add(new TextField("id", String.valueOf(category.getCategoryId()), Field.Store.YES));
                 document.add(new TextField("title", "Category", Field.Store.YES));
                 document.add(new TextField("name", category.getName(), Field.Store.YES));
-//                document.add(new TextField("description", category.getName(), Field.Store.YES));
 
                 writer.addDocument(document);
             }
@@ -106,7 +107,13 @@ public class LuceneIndexDataService {
         List<DataResponse> response = null;
 
         try {
-            QueryParser queryParser = new QueryParser("name", analyzer);
+            // Use MultiFieldQueryParser to search both "name" and "description" fields
+            String[] fields = {"name", "description"};
+            Map<String, Float> boosts = new HashMap<>();
+            boosts.put("name", 1.0f);        // Boost for "name" field
+            boosts.put("description", 1.0f); // Boost for "description" field
+
+            MultiFieldQueryParser queryParser = new MultiFieldQueryParser(fields, analyzer, boosts);
             Query query = queryParser.parse(queryStr);
 
             DirectoryReader reader = DirectoryReader.open(index);
